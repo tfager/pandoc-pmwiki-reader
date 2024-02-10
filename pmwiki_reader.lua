@@ -14,28 +14,67 @@ local blankline = spacechar^0 * newline
 local endline = newline * #-blankline
 local endequals = spacechar^0 * P"="^0 * spacechar^0 * newline
 local cellsep = spacechar^0 * P"|"
+local apostrophe = string.char(39)
+local doubleApo = P(apostrophe) * P(apostrophe)
 
 local function trim(s)
    return (s:gsub("^%s*(.-)%s*$", "%1"))
 end
 
+local function ListItem(lev, ch)
+  local start
+  if ch == nil then
+    start = S"*#"
+  else
+    start = P(ch)
+  end
+  local subitem = function(c)
+    if lev < 6 then
+    return ListItem(lev + 1, c)
+    else
+    return (1 - 1) -- fails
+    end
+  end
+  local parser = spacechar^0
+              * start^lev
+              * #(- start)
+              * spacechar^0
+              * Ct((V"Inline" - (newline * spacechar^0 * S"*#"))^0)
+              * newline
+              * (Ct(subitem("*")^1) / pandoc.BulletList
+                    +
+                    Ct(subitem("#")^1) / pandoc.OrderedList
+                    +
+                    Cc(nil))
+              / function (ils, sublist)
+                    return { pandoc.Plain(ils), sublist }
+                    end
+  return parser
+end
+
 -- Grammar
--- TODO: Emph not working
--- TODO: apostrophe and quote being escaped
 G = P{ "Doc",
   Doc = Ct(V"Block"^0)
       / pandoc.Pandoc ;
   Block = blankline^0
         * ( V"Header"
           + V"HorizontalRule"
+          + V"CodeBlock"
+          + V"List"
           + V"Para"
-          + V"CodeBlock") ;
+          ) ;
   CodeBlock = P"[@"
           * blankline
           * C((1 - (newline * P"@]"))^0)
           * newline
           * P"@]"
           / pandoc.CodeBlock;
+  List = V"BulletList"
+        + V"OrderedList" ;
+  BulletList = Ct(ListItem(1,'*')^1)
+              / pandoc.BulletList ;
+  OrderedList = Ct(ListItem(1,'#')^1)
+              / pandoc.OrderedList ;
   Para = Ct(V"Inline"^1)
        * newline
        / pandoc.Para ;
@@ -52,11 +91,9 @@ G = P{ "Doc",
   Inline = V"Link"
          + V"Code"
          + V"Bold"
-         + V"OtherEmph"
          + V"Emph" 
          + V"Str"
          + V"Space"
-         + V"Escaped"
          + V"Special";
   Link = P"[["
          * C((1 - (P"]]" + P"|"))^0)
@@ -70,23 +107,16 @@ G = P{ "Doc",
          * C((1 - P'@@')^0)
          * P'@@'
          / trim / pandoc.Code;
-  Bold = P"'''"
-           * Ct((V"Inline" - P"'''")^1)
-           * P"'''"
-           / pandoc.Strong;
-  OtherEmph = P"//"
-           * Ct((V"Inline" - P"//")^1)
-           * P"//"
-           / pandoc.Emph;
-  Emph = P'\'' * P'\''
-         * Ct((V"Inline" - (P'\'' * P'\''))^1)
-         * P'\'' * P'\''
+  Emph = P"''"
+         * C(((wordchar + whitespacechar) - P"''")^1)
+         * P"''"
          / pandoc.Emph;
+  Bold = P"'''"
+       * C(((wordchar + whitespacechar) - P"'''")^1)
+       * P"'''"
+       / pandoc.Strong;
   Str = wordchar^1
       / pandoc.Str;
-  Escaped = P"~"
-          * C(P(1))
-          / pandoc.Str;
   Special = specialchar
           / pandoc.Str;
   Space = spacechar^1

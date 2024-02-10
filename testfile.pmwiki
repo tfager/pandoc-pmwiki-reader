@@ -11,9 +11,9 @@ Text.
 [[https://elisa.fi/|Link to URL]]
 
 ''Emphasized (italic) text''
-''Test''
+''More italic in
+multiple lines''
 '''Bold'''
-//Test non-pmwiki italic//
 
 On this line there's @@inline code@@.
 
@@ -22,6 +22,17 @@ echo "Code block"
 echo "Multiple lines"
 @]
 
+Bullet list:
+* First level
+* Again First
+** Second level
+*** Third level
+
+Numbered list
+# First level
+# Again First
+## Second level
+### Third level
 
 
 

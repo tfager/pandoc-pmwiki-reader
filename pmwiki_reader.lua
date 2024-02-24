@@ -16,6 +16,8 @@ local endequals = spacechar^0 * P"="^0 * spacechar^0 * newline
 local cellsep = spacechar^0 * P"|"
 local apostrophe = string.char(39)
 local doubleApo = P(apostrophe) * P(apostrophe)
+local fenced = '```\n%s\n```\n'
+local cellsep = spacechar^0 * P"||"
 
 local function trim(s)
    return (s:gsub("^%s*(.-)%s*$", "%1"))
@@ -57,24 +59,73 @@ G = P{ "Doc",
   Doc = Ct(V"Block"^0)
       / pandoc.Pandoc ;
   Block = blankline^0
-        * ( V"Header"
+        * ( V"IndentedBlock"
+          + V"Header"
           + V"HorizontalRule"
           + V"CodeBlock"
           + V"List"
+          + V"Table"
           + V"Para"
           ) ;
+  IndentedBlock = C((spacechar^1
+                    * (1 - newline)^1
+                    * newline)^1
+                    )
+                    / function(text)
+                        block = pandoc.RawBlock('markdown', fenced:format(text)) 
+                        return block
+                    end;
   CodeBlock = P"[@"
           * blankline
           * C((1 - (newline * P"@]"))^0)
           * newline
           * P"@]"
-          / pandoc.CodeBlock;
+          / function(text)
+            block = pandoc.RawBlock('markdown', fenced:format(text)) 
+            return block
+          end;
   List = V"BulletList"
         + V"OrderedList" ;
   BulletList = Ct(ListItem(1,'*')^1)
               / pandoc.BulletList ;
   OrderedList = Ct(ListItem(1,'#')^1)
               / pandoc.OrderedList ;
+  Table = V"TableProperties"
+        * (V"TableHeader" + Cc{})
+        * Ct(V"TableRow"^1)
+        / function(headrow, bodyrows)
+          local numcolumns = #(bodyrows[1])
+          local aligns = {}
+          local widths = {}
+          for i = 1,numcolumns do
+            aligns[i] = pandoc.AlignDefault
+            widths[i] = 0
+          end
+          return pandoc.utils.from_simple_table(
+            pandoc.SimpleTable({}, aligns, widths, headrow, bodyrows))
+        end ;
+  TableProperties = cellsep
+                  * spacechar^0
+                  * P("border=")
+                  * (1 - newline)^1
+                  * newline;
+  TableHeader = Ct(V"HeaderCell"^1)
+              * cellsep^-1
+              * spacechar^0
+              * newline ;
+  TableRow   = Ct(V"BodyCell"^1)
+              * cellsep^-1
+              * spacechar^0
+              * newline ;
+  HeaderCell = cellsep
+              * P"!"^-1
+              * spacechar^0
+              * Ct((V"Inline" - (newline + cellsep))^0)
+              / function(ils) return { pandoc.Plain(ils) } end ;
+  BodyCell   = cellsep
+              * spacechar^0
+              * Ct((V"Inline" - (newline + cellsep))^0)
+              / function(ils) return { pandoc.Plain(ils) } end ;
   Para = Ct(V"Inline"^1)
        * newline
        / pandoc.Para ;
@@ -89,6 +140,7 @@ G = P{ "Doc",
          * endequals
          / pandoc.Header;
   Inline = V"Link"
+         + V"Url"
          + V"Code"
          + V"Bold"
          + V"Emph" 
@@ -103,6 +155,15 @@ G = P{ "Doc",
              local txt = desc or {pandoc.Str(url)}
              return pandoc.Link(txt, url)
            end;
+  Url = C(
+          P"http"
+          * P"s"^-1
+          * P"://"
+          * (1 - whitespacechar)^1
+          )
+          / function(url)
+              return pandoc.Link(url, url)
+          end;
   Code = P'@@'
          * C((1 - P'@@')^0)
          * P'@@'

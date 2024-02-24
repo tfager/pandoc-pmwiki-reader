@@ -10,10 +10,17 @@ Text.
 
 [[https://elisa.fi/|Link to URL]]
 
+http://test.com/foo?bar=baz&bing=1
+
+https://secure.com/other#url
+
+[[https://very.long.link/which/makes/it/tempting/to/put/linefeeds/in/the/desc|But one shouldn't]]
+
 ''Emphasized (italic) text''
 ''More italic in
 multiple lines''
 '''Bold'''
+'''Bold so that it's got extra chars!'''
 
 On this line there's @@inline code@@.
 
@@ -21,6 +28,12 @@ On this line there's @@inline code@@.
 echo "Code block"
 echo "Multiple lines"
 @]
+
+  echo "Indented code block"
+  echo "Difficult to spot"
+
+  echo "Block continues after empty line"
+
 
 Bullet list:
 * First level
@@ -34,5 +47,11 @@ Numbered list
 ## Second level
 ### Third level
 
+!Table
+
+||border=1 cellpadding=5 shouldSkip=propertiesRow
+||!Column 1||!Second||!Third||!Fourth||
+||AAA||First row||Some kind of ||Text here||
+||BBB||Second|| '''Bold stuff''' || [[https://foo.com/|May have link too]] ||
 
 

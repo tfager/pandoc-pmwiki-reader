@@ -143,7 +143,8 @@ G = P{ "Doc",
          + V"Url"
          + V"Code"
          + V"Bold"
-         + V"Emph" 
+         + V"Emph"
+         + V"Strikeout"
          + V"Str"
          + V"Space"
          + V"Special";
@@ -176,6 +177,10 @@ G = P{ "Doc",
        * C(((wordchar + whitespacechar) - P"'''")^1)
        * P"'''"
        / pandoc.Strong;
+  Strikeout = P"{-"
+            * C(((wordchar + whitespacechar) - P"-}")^1)
+            * P"-}"
+            / pandoc.Strikeout;
   Str = wordchar^1
       / pandoc.Str;
   Special = specialchar

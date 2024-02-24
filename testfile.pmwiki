@@ -8,7 +8,7 @@ Text.
 
 !!  Test header 3
 
-[[https://elisa.fi/|Link to URL]]
+[[https://somesite.com/|Link to URL]]
 
 http://test.com/foo?bar=baz&bing=1
 
@@ -21,6 +21,8 @@ https://secure.com/other#url
 multiple lines''
 '''Bold'''
 '''Bold so that it's got extra chars!'''
+
+{-Strikethrough text-}
 
 On this line there's @@inline code@@.
 
